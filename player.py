@@ -15,6 +15,15 @@ class Player:
           print('□  ', end = '')
       print()
 
+  def nthLine(self, n):
+    result = ''
+    for i in range(5):
+      if self.selectBoard[n][i] == False:
+        result += '{:2d} '.format(self.numberBoard[n][i])
+      else:
+        result += '□  '
+    return result
+
   def pickNumber(self, n):
     for i in range(0, 5):
       for j in range(0, 5):

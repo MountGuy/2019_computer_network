@@ -16,11 +16,12 @@ class Room:
     self.playerNum = self.playerNum + 1
 
   def printStatus(self):
-    i = 0
     for player in self.players:
-      i = i + 1
-      print('#{} {}'.format(i, player.id))
-      player.printBoard()
+      print('{:16s}'.format(player.id), end='')
+    print()
+    for i in range(5):
+      for player in self.players:
+        print('{} '.format(player.nthLine(i)), end = '')
       print()
 
   def pickNumber(self, n):
