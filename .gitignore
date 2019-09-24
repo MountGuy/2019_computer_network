@@ -3,3 +3,5 @@ output.txt
 sandbox.py
 sock.py
 thread.py
+__pycache__/*
+practice/*

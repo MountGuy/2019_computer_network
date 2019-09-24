@@ -3,11 +3,13 @@ from socket import *
 from setting import *
 from player import Player
 
+serverAddr = '147.46.240.95'
+localAddr = '127.0.0.1'
 
 class Client:
   def __init__(self):
     self.clientSock = socket(AF_INET, SOCK_STREAM)
-    self.clientSock.connect(('127.0.0.1', 8080))
+    self.clientSock.connect((serverAddr, 8080))
     id = input('submit your id:')
     send(self.clientSock, id)
     data = recieve(self.clientSock)
