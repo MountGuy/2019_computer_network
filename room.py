@@ -4,7 +4,6 @@ from player import Player
 class Room:
   def __init__(self, roomName):
     self.roomName = roomName
-    self.playerNum = 0
     self.players = []
     return
 
@@ -13,7 +12,6 @@ class Room:
     numbers = random.sample(range(1,100), 25)
     board = [numbers[0:5], numbers[5:10], numbers[10:15], numbers[15:20], numbers[20:25]]
     self.players.append(Player(playerID, board))
-    self.playerNum = self.playerNum + 1
 
   def printStatus(self):
     for player in self.players:
@@ -30,11 +28,13 @@ class Room:
 
   def checkBingo(self):
     result = False
+    winner = []
     for player in self.players:
       if player.checkBingo():
         print('{} wins the game!'.format(player.id))
+        winner.append(player.id)
         result = True
-    return result
+    return (result, winner)
 
   def getBoard(self, playerID):
     for player in self.players:

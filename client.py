@@ -1,15 +1,14 @@
-import threading
-from socket import *
-from setting import *
+from threading import Thread
+from protocol import send, recieve, newSocket
 from player import Player
 
-serverAddr = '147.46.240.95'
-localAddr = '127.0.0.1'
+serverIP = '147.46.240.95'
+localIP = '127.0.0.1'
 
 class Client:
   def __init__(self):
-    self.clientSock = socket(AF_INET, SOCK_STREAM)
-    self.clientSock.connect((serverAddr, 8080))
+    self.clientSock = newSocket()
+    self.clientSock.connect((localIP, 8080))
     id = input('submit your id:')
     send(self.clientSock, id)
     data = recieve(self.clientSock)
@@ -21,8 +20,8 @@ class Client:
     self.turn = False
 
   def run(self):
-    t1 = threading.Thread(target = self.listen, args = (self.clientSock, ))
-    t2 = threading.Thread(target = self.call, args = (self.clientSock, ))
+    t1 = Thread(target = self.listen, args = (self.clientSock, ))
+    t2 = Thread(target = self.call, args = (self.clientSock, ))
     t1.daemon = True
     t2.daemon = True
     t1.start()
@@ -42,6 +41,7 @@ class Client:
         print('Message from {}: {}'.format(parse[1], parse[2]))
       elif parse[0] == 'BING':
         print('{} achieved bingo!'.format(parse[1]))
+        send(sock, 'DONE')
         return
       elif parse[0] == 'TURN':
         print('Your turn!')
