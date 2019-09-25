@@ -13,13 +13,15 @@ class Room:
     board = [numbers[0:5], numbers[5:10], numbers[10:15], numbers[15:20], numbers[20:25]]
     self.players.append(Player(playerID, board))
 
-  def printStatus(self):
+  def printStatus(self, hinge):
     for player in self.players:
-      print('{:16s}'.format(player.id), end='')
+      print('{:16s}'.format(player.id), end = '')
+      print(' ' * hinge, end = '')
     print()
     for i in range(5):
       for player in self.players:
         print('{} '.format(player.nthLine(i)), end = '')
+        print(' ' * hinge, end = '')
       print()
 
   def pickNumber(self, n):
