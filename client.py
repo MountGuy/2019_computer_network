@@ -1,5 +1,5 @@
 from threading import Thread
-from protocol import send, recieve, newSocket
+from protocol import send, recieve, newSocket, port
 from player import Player
 
 serverIP = '147.46.240.95'
@@ -8,9 +8,19 @@ localIP = '127.0.0.1'
 class Client:
   def __init__(self):
     self.clientSock = newSocket()
-    self.clientSock.connect((localIP, 8080))
+    self.clientSock.connect((serverIP, port))
     id = input('submit your id:')
-    send(self.clientSock, id)
+    send(self.clientSock, 'ID\0{}'.format(id))
+    data = recieve(self.clientSock)
+    roomNames = data.split('\0')[1:]
+
+    print('<select room>')
+    for roomName in roomNames:
+      print(roomName)
+
+    room = input()
+    send(self.clientSock, 'ROOM\0{}'.format(room))
+
     data = recieve(self.clientSock)
     strs = data.split()
     numbers = list(map(lambda x : int(x), strs))
@@ -39,17 +49,16 @@ class Client:
         print('{} picked {}.'.format(parse[2], parse[1]))
       elif parse[0] == 'MESS':
         print('Message from {}: {}'.format(parse[1], parse[2]))
-      elif parse[0] == 'BING':
+      elif parse[0] == 'BINGO':
         print('{} achieved bingo!'.format(parse[1]))
-        send(sock, 'DONE')
-        return
       elif parse[0] == 'TURN':
         print('Your turn!')
         self.turn = True
       elif parse[0] =='POSI':
         print('Your position is {}.'.format(parse[1]))
-      else:
-        print('Invalid command.')
+      elif parse[0] == 'DONE':
+        send(sock, 'DONE')
+        break
 
   def call(self, sock):
     while True:
@@ -62,6 +71,8 @@ class Client:
         id = input()
         msg = input()
         send(sock, '{}\0{}\0{}'.format('MESS', id, msg))
+      else:
+        print('Invalid command.')
 
 client = Client()
 client.run()
