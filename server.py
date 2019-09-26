@@ -3,7 +3,7 @@ import random
 from threading import Thread
 from player import Player
 from room import Room
-from protocol import send, recieve, newSocket
+from protocol import send, recieve, newSocket, port
 
 from pseudoClient import PseudoClient 
 
@@ -16,14 +16,15 @@ def boardToString(board):
 
 class Server :
   def __init__(self):
-    self.room = Room('room #1')
+    self.rooms = [Room('room1')]
     self.serverSock = newSocket()
-    self.serverSock.bind(('', 8080))
+    self.serverSock.bind(('', port))
     self.serverSock.listen(5)
     self.threads = []
     self.sockets = []
     self.roomNum = 1
-    self.dict = {}
+    self.roomDict = {'room1': 0}
+    self.playerDict = {}
     self.playerN = 5
     self.turn = random.randrange(0, self.playerN - 1)
 
@@ -34,14 +35,25 @@ class Server :
   def collectClient(self):
     for i in range(self.playerN):
       conSock, addr = self.serverSock.accept()
-      id = recieve(conSock)
-      print(">{} joined the game".format(id))
+      print(addr)
+      parse = recieve(conSock).split('\0')
+      id = parse[1]
+      print(">> {} joined the game".format(id))
+
+      msg = 'ROOM'
+      for room in self.rooms:
+        msg += '\0{}'.format(room.roomName)
+
+      send(conSock, msg)
+
+      parse = recieve(conSock).split('\0')
+      room = self.rooms[self.roomDict[parse[1]]]
 
       self.sockets.append(conSock)
-      self.dict[id] = i
-      self.room.addPlayer(id)
+      self.playerDict[id] = i
+      room.addPlayer(id)
       
-      msg = boardToString(self.room.getBoard(id))
+      msg = boardToString(self.rooms[0].getBoard(id))
       send(conSock, msg)
       
       t = Thread(target = self.handleClient, args = (i, conSock, addr, id))
@@ -56,21 +68,22 @@ class Server :
       if parse[0] == 'PICK':
         if i == self.turn:
           self.turn = (self.turn + 1) % self.playerN
-          self.room.pickNumber(int(parse[1]))
-          print(">{} picked {}".format(id, int(parse[1])))
-          self.room.printStatus(5)
+          self.rooms[0].pickNumber(int(parse[1]))
+          print(">> {} picked {}".format(id, int(parse[1])))
+          self.rooms[0].printStatus(5)
           print("=====================================================================")
           self.distribute('PICK\0{}\0{}'.format(parse[1], id))
-          send(self.sockets[self.turn], 'TURN')
-          (end, winners) = self.room.checkBingo()
+          (end, winners) = self.rooms[0].checkBingo()
           if end:
             for id in winners:
-              self.distribute('BING\0{}'.format(id))
-            break
+              self.distribute('BINGO\0{}'.format(id))
+            self.distribute('DONE')
+          else:
+            send(self.sockets[self.turn], 'TURN')
         else:
           send(conSock, 'MESS\0{}\0{}'.format('Server', 'It\'s not your turn now.'))
       elif parse[0] == 'MESS':
-        j = self.dict[parse[1]]
+        j = self.playerDict[parse[1]]
         send(self.sockets[j], 'MESS\0{}\0{}'.format(id, parse[2]))
       elif parse[0] == 'DONE':
         break
@@ -78,23 +91,28 @@ class Server :
 
   def service(self):
     while True:
-      collectThread = Thread(target = self.collectClient)
-      collectThread.start()
+      collectClient = Thread(target = self.collectClient)
+      collectClient.start()
+
       for i in range(0, 3):
-        print('>pseudo player {} created'.format(i + 1))
-        pc = PseudoClient('pseudo_player_' + str(i))
+        print('>> pseudo player {} created'.format(i + 1))
+        pc = PseudoClient('pseudo_player_' + str(i + 1))
         t = Thread(target = pc.run)
         t.daemon = True
         t.start()
-      collectThread.join()
+      
+      collectClient.join()
       send(self.sockets[self.turn], 'TURN')
+      
       for t in self.threads:
         t.join()
+
       self.roomNum = self.roomNum + 1
-      self.room = Room('room #{}'.format(self.roomNum))
-      self.threads = []
+      #self.rooms[0] = Room('room #{}'.format(self.roomNum))
+      self.rooms[0] = Room('room{}'.format(self.roomNum))
+      self.threads = [None, None, None, None, None]
       self.sockets = []
-      self.dict = {}
+      self.playerDict = {'room{}'.format(self.roomNum):0}
       for sock in self.sockets:
         sock.close()
 
