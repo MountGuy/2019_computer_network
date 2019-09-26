@@ -33,35 +33,46 @@ class Server :
       send(sock, msg)
   
   def collectClient(self):
+    job = ['main culprit','copartner']
     for i in range(self.playerN):
-      conSock, addr = self.serverSock.accept()
-      print(addr)
+      conSock, (ip, _) = self.serverSock.accept()
+      
       parse = recieve(conSock).split('\0')
+      if parse[0] != 'ID':
+        conSock.close()
+        i -= 1
+        continue
       id = parse[1]
-      print(">> {} joined the game".format(id))
+      print('>> {} logged in'.format(id))
 
       msg = 'ROOM'
       for room in self.rooms:
         msg += '\0{}'.format(room.roomName)
-
       send(conSock, msg)
 
       parse = recieve(conSock).split('\0')
+      if parse[0] != 'ROOM':
+        conSock.close()
+        i -= 1
+        continue
       room = self.rooms[self.roomDict[parse[1]]]
 
       self.sockets.append(conSock)
       self.playerDict[id] = i
       room.addPlayer(id)
+      print(">> {} joined the game".format(id))
+      if ip != '127.0.0.1':
+        send(conSock, 'POSI\0{}'.format(job.pop(0)))
       
       msg = boardToString(self.rooms[0].getBoard(id))
       send(conSock, msg)
       
-      t = Thread(target = self.handleClient, args = (i, conSock, addr, id))
+      t = Thread(target = self.handleClient, args = (i, conSock, id))
       t.daemon = True
       self.threads.append(t)
       t.start()
 
-  def handleClient(self, i, conSock, addr, id):
+  def handleClient(self, i, conSock, id):
     while True:
       msg = recieve(conSock)
       parse = msg.split('\0')
@@ -107,7 +118,7 @@ class Server :
       for t in self.threads:
         t.join()
 
-      self.roomNum = self.roomNum + 1
+      self.roomNum += self.roomNum
       #self.rooms[0] = Room('room #{}'.format(self.roomNum))
       self.rooms[0] = Room('room{}'.format(self.roomNum))
       self.threads = [None, None, None, None, None]
