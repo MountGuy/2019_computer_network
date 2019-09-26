@@ -1,5 +1,7 @@
 import socket
 
+port = 8080
+
 def send(sock, msg):
   length = '{:4d}'.format(len(msg))
   sock.send(length.encode('utf-8'))
