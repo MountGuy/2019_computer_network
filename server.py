@@ -9,11 +9,6 @@ from protocol import send, recieve, newSocket, port
 
 from pseudoClient import PseudoClient 
 
-def handler(signum, f):
-  print(signum)
-  sys.exit()
-
-signal.signal(signal.SIGINT, handler)
 
 def boardToString(board):
   string = ['', '', '', '', '']
@@ -134,6 +129,15 @@ class Server :
       for sock in self.sockets:
         sock.close()
 
+  def end(self):
+    for sock in self.sockets:
+      sock.close()
+    self.serverSock.close
+    sys.exit()
+
+
 
 server = Server()
 server.service()
+
+signal.signal(signal.SIGINT, Server.end)
