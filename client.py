@@ -9,20 +9,35 @@ class Client:
   def __init__(self):
     self.clientSock = newSocket()
     self.clientSock.connect((serverIP, port))
-    id = input('submit your id:')
-    send(self.clientSock, 'ID\0{}'.format(id))
-    data = recieve(self.clientSock)
-    roomNames = data.split('\0')[1:]
 
-    print('<select room>')
+    while True:
+      id = input('submit your id:')
+      send(self.clientSock, 'ID\0{}'.format(id))
+      result = recieve(self.clientSock)
+      if result == 'FAIL':
+        print('ID already exists. Choose another ID.')
+      else:
+        break
+
+    parse = recieve(self.clientSock)
+    roomNames = parse.split('\0')[1:]
+    print('Room lists')
     for roomName in roomNames:
       print(roomName)
 
-    room = input()
-    send(self.clientSock, 'ROOM\0{}'.format(room))
+    while True:
+      room = input('select room to join:')
+      send(self.clientSock, 'ROOM\0{}'.format(room))
+      result = recieve(self.clientSock)
+      if result == 'FAIL':
+        print('{} do not exists. Try it again.'.format(room))
+      else:
+        break
 
-    data = recieve(self.clientSock)
-    strs = data.split()
+      parse = recieve(self.clientSock).split('\0')
+      print('Your position is {}.'.format(parse[1]))
+
+    strs = recieve(self.clientSock).split()
     numbers = list(map(lambda x : int(x), strs))
     board = [numbers[0:5], numbers[5:10], numbers[10:15], numbers[15:20], numbers[20:25]]
     self.player = Player(id, board)
@@ -56,21 +71,22 @@ class Client:
         self.turn = True
       elif parse[0] =='POSI':
         print('Your position is {}.'.format(parse[1]))
+        self.position = parse[1]
       elif parse[0] == 'DONE':
         send(sock, 'DONE')
         break
 
   def call(self, sock):
     while True:
-      command = input()
-      if command == 'PICK':
-        num = input()
-        send(sock, '{}\0{}'.format('PICK', num))
+      command = input('Your command is:')
+      if command == 'pick':
+        num = input('Select number to pick:')
+        if self.position == 'main culprit':
+          msg = input('Submit your message to send:')
+          send(sock, '{}\0{}\0{}'.format('PICK', num, msg))
+        else:
+          send(sock, '{}\0{}\0{}'.format('PICK', num, 'None'))
         self.turn = False
-      elif command == 'MESS':
-        id = input()
-        msg = input()
-        send(sock, '{}\0{}\0{}'.format('MESS', id, msg))
       else:
         print('Invalid command.')
 

@@ -12,7 +12,7 @@ class Player:
         if self.selectBoard[i][j] == False:
           print('{:2d} '.format(self.numberBoard[i][j]), end = '')
         else:
-          print('□  ', end = '')
+          print(' □ ', end = '')
       print()
 
   def nthLine(self, n):
@@ -21,7 +21,7 @@ class Player:
       if self.selectBoard[n][i] == False:
         result += '{:2d} '.format(self.numberBoard[n][i])
       else:
-        result += '□  '
+        result += ' □ '
     return result
 
   def pickNumber(self, n):
