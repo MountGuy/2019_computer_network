@@ -8,21 +8,23 @@ localIP = '127.0.0.1'
 class Client:
   def __init__(self):
     self.clientSock = newSocket()
-    self.clientSock.connect((serverIP, port))
+    self.clientSock.connect((localIP, port))
     id = input('submit your id:')
     send(self.clientSock, 'ID\0{}'.format(id))
     data = recieve(self.clientSock)
     roomNames = data.split('\0')[1:]
 
-    print('<select room>')
+    print('<rooms>')
     for roomName in roomNames:
       print(roomName)
 
-    room = input()
+    room = input('select room to join:')
     send(self.clientSock, 'ROOM\0{}'.format(room))
 
-    data = recieve(self.clientSock)
-    strs = data.split()
+    parse = recieve(self.clientSock).split('\0')
+    print('Your position is {}.'.format(parse[1]))
+
+    strs = recieve(self.clientSock).split()
     numbers = list(map(lambda x : int(x), strs))
     board = [numbers[0:5], numbers[5:10], numbers[10:15], numbers[15:20], numbers[20:25]]
     self.player = Player(id, board)
