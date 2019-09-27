@@ -9,6 +9,7 @@ class Client:
   def __init__(self):
     self.clientSock = newSocket()
     self.clientSock.connect((serverIP, port))
+    self.position = ''
 
     while True:
       id = input('submit your id:')
@@ -34,8 +35,8 @@ class Client:
       else:
         break
 
-      parse = recieve(self.clientSock).split('\0')
-      print('Your position is {}.'.format(parse[1]))
+    parse = recieve(self.clientSock).split('\0')
+    print('Your position is {}.'.format(parse[1]))
 
     strs = recieve(self.clientSock).split()
     numbers = list(map(lambda x : int(x), strs))
