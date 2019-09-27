@@ -1,4 +1,6 @@
 import random
+import sys
+import signal
 
 from threading import Thread
 from player import Player
@@ -7,6 +9,11 @@ from protocol import send, recieve, newSocket, port
 
 from pseudoClient import PseudoClient 
 
+def handler(signum, f):
+  print(signum)
+  sys.exit()
+
+signal.signal(signal.SIGINT, handler)
 
 def boardToString(board):
   string = ['', '', '', '', '']
