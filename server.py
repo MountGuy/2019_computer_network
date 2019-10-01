@@ -165,7 +165,14 @@ class Server :
         sock.close()
       self.sockets = []
 
+  def end(self):
+    for sock in self.sockets:
+      sock.close()
+    self.serverSock.close
+    sys.exit()
+
+
 
 server = Server()
 server.service()
-
+signal.signal(signal.SIGINT, Server.end)
