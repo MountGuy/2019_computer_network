@@ -1,6 +1,6 @@
 import socket
 
-port = 20331
+port = 20332
 
 def send(sock, msg):
   length = '{:4d}'.format(len(msg))
