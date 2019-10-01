@@ -1,4 +1,6 @@
 import random
+import sys
+import signal
 
 from threading import Thread
 from player import Player
@@ -127,6 +129,15 @@ class Server :
       for sock in self.sockets:
         sock.close()
 
+  def end(self):
+    for sock in self.sockets:
+      sock.close()
+    self.serverSock.close
+    sys.exit()
+
+
 
 server = Server()
 server.service()
+
+signal.signal(signal.SIGINT, Server.end)
