@@ -9,15 +9,15 @@ class PseudoClient:
     self.clientSock.connect((localIP, port))
     self.id = id
     send(self.clientSock, 'ID\0{}'.format(id))
+    recieve(self.clientSock)
 
-    data = recieve(self.clientSock)
-    roomNames = data.split('\0')[1:]
+    roomNames = recieve(self.clientSock).split('\0')[1:]
     room = roomNames[0]
     send(self.clientSock, 'ROOM\0{}'.format(room))
+    recieve(self.clientSock)
 
-    data = recieve(self.clientSock)
-    strs = data.split()
-    self.numbers = list(map(lambda x : int(x), strs))
+    boardData = recieve(self.clientSock).split()
+    self.numbers = list(map(lambda x : int(x), boardData))
     self.selected = [False] * 25
 
   def run(self):
