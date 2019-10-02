@@ -1,6 +1,7 @@
 import random
 import sys
 import signal
+import queue
 
 from threading import Thread
 from player import Player
@@ -8,17 +9,6 @@ from room import Room
 from protocol import send, recieve, newSocket, port
 
 from pseudoClient import PseudoClient 
-
-
-def boardToString(board):
-  string = ['', '', '', '', '']
-  for i in range(0, 5):
-    string[i] = '{} {} {} {} {}\n'.format(board[i][0], board[i][1], board[i][2], board[i][3], board[i][4])
-  return '{}{}{}{}{}'.format(string[0], string[1], string[2], string[3], string[4])
-
-def distribute(server, msg):
-  for sock in server.sockets:
-    send(sock, msg)
 
 class Server :
   def __init__(self):
@@ -38,68 +28,100 @@ class Server :
     self.copSock = None
     self.order = random.sample(range(0, 5), 5)
     self.turn = 0
-
-
   
+  def distribute(self, msg):
+    for sock in self.sockets:
+      send(sock, msg)
+
+  def getClient(self, sock, position, queue):
+
+    ### get ID from client.
+    while True:
+      parse = recieve(sock).split('\0')
+      if parse[0] != 'ID':
+        send(sock, 'Invalid request at this status.')
+        sock.close()
+        i -= 1
+        continue
+      id = parse[1]
+      if id in self.playerDict:
+        send(sock, 'FAIL')
+      else:
+        send(sock, 'SUCCESS')
+        self.playerDict[id] = 'Exist'
+        break
+      
+    print('>> {} logged in'.format(id))
+
+    ### get room from client
+    msg = 'ROOM'
+    for room in self.rooms:
+      msg += '\0{}'.format(room.roomName)
+    send(sock, msg)
+
+    while True:
+      parse = recieve(sock).split('\0')
+      if parse[0] != 'ROOM':
+        send(sock, 'Invalid request at this status.')
+        sock.close()
+        i -= 1
+        continue
+      if parse[1] in self.roomDict:
+        send(sock, 'SUCCESS')
+        break
+      else:
+        send(sock, 'FAIL')
+    
+    send(sock, 'POSI\0{}'.format(position))
+    
+    n = len(self.sockets)
+    self.sockets.append(sock)
+    self.playerDict[id] = (n, sock, position)
+
+    room = self.rooms[self.roomDict[parse[1]]]
+    room.addPlayer(id)
+    
+    print(">> {} joined the game".format(id))
+    queue.put(id)
+    
+    return
+
   def collectClient(self):
     positions = ['main culprit','copartner']
-
+    getClientThread = []
+    IDRoomInfo = []
+    resultQueue = queue.Queue()
+    
     for i in range(self.playerNum):
-      position = 'None'
       conSock, (ip, _) = self.serverSock.accept()
-      
-      while True:
-        parse = recieve(conSock).split('\0')
-        if parse[0] != 'ID':
-          send(conSock, 'Invalid request at this status.')
-          conSock.close()
-          i -= 1
-          continue
-        id = parse[1]
-        if id in self.playerDict:
-          send(conSock, 'FAIL')
-        else:
-          send(conSock, 'SUCCESS')
-          break
-      
-      print('>> {} logged in'.format(id))
-
-      msg = 'ROOM'
-      for room in self.rooms:
-        msg += '\0{}'.format(room.roomName)
-      send(conSock, msg)
-
-      while True:
-        parse = recieve(conSock).split('\0')
-        if parse[0] != 'ROOM':
-          send(conSock, 'Invalid request at this status.')
-          conSock.close()
-          i -= 1
-          continue
-        if parse[1] in self.roomDict:
-          send(conSock, 'SUCCESS')
-          break
-        else:
-          send(conSock, 'FAIL')
-      
-      room = self.rooms[self.roomDict[parse[1]]]
-
-      self.sockets.append(conSock)
-      self.playerDict[id] = i
-      room.addPlayer(id)
-
-      print(">> {} joined the game".format(id))
+    
       if ip != '127.0.0.1':
         position = positions.pop(0)
-        send(conSock, 'POSI\0{}'.format(position))
-      
-      msg = boardToString(self.rooms[0].getBoard(id))
-      send(conSock, msg)
+      else:
+        position = 'None'
 
       if position == 'copartner':
         self.copSock = conSock
+      
+      t = Thread(target = self.getClient, args = (conSock, position, resultQueue))
+      t.daemon = True
+      getClientThread.append(t)
+      t.start()
+    
+    for t in getClientThread:
+      t.join()
 
-      t = Thread(target = self.handleClient, args = (i, conSock, id, position))
+    for i in range(self.playerNum):
+      id = resultQueue.get()
+      n, sock, position = self.playerDict[id]
+
+      send(sock, 'START')
+      room = self.rooms[0]
+      msg = room.getPackedBoard(id)
+      send(sock, msg)
+    #=============
+
+      t = Thread(target = self.handleClient, args = (i, sock, id, position))
       t.daemon = True
       self.threads.append(t)
       t.start()
@@ -118,15 +140,15 @@ class Server :
           
           print("=====================================================================")
           
-          distribute(self, 'PICK\0{}\0{}'.format(parse[1], id))
+          self.distribute('PICK\0{}\0{}'.format(parse[1], id))
           if position == 'main culprit':
             send(self.copSock, 'MESS\0{}\0{}'.format('main culprit', parse[2]))
 
           (end, winners) = self.rooms[0].checkBingo()
           if end:
             for id in winners:
-              distribute(self, 'BINGO\0{}'.format(id))
-            distribute(self, 'DONE')
+              self.distribute('BINGO\0{}'.format(id))
+            self.distribute('DONE')
           else:
             send(self.sockets[self.order[self.turn]], 'TURN')
         else:
@@ -148,7 +170,6 @@ class Server :
         t.start()
       
       collectClient.join()
-      distribute(self, 'START')
       send(self.sockets[self.order[self.turn]], 'TURN')
       
       for t in self.threads:
@@ -165,14 +186,8 @@ class Server :
         sock.close()
       self.sockets = []
 
-  def end(self):
-    for sock in self.sockets:
-      sock.close()
-    self.serverSock.close
-    sys.exit()
 
-
-
-server = Server()
-server.service()
-signal.signal(signal.SIGINT, Server.end)
+if __name__ == "__main__":
+  server = Server()
+  server.service()
+  
