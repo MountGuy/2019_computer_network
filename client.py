@@ -21,14 +21,14 @@ magenta = 5
 cyan = 6
 white = 7
 
-logs = [['']] * logheight
-sets = [[white]] * logheight
 
 class Client:
 
   def __init__(self, stdscr):
     self.position = ''
     self.stdscr = stdscr
+    self.logs = [['']] * logheight
+    self.sets = [[white]] * logheight
     
     rectangle(self.stdscr, boardy - 1, boardx - 1, boardy + 5, boardx + 15)
     rectangle(self.stdscr, logy - 1, logx - 1, logy + logheight, logx + logwidth)
@@ -121,14 +121,14 @@ class Client:
       self.nPrint(logx, logy + i, [' ' * logwidth], [white])
     
     for i in range(logheight - 1):
-      logs[i] = logs[i + 1]
-      sets[i] = sets[i + 1]
+      self.logs[i] = self.logs[i + 1]
+      self.sets[i] = self.sets[i + 1]
     
-    logs[logheight - 1] = newLog
-    sets[logheight - 1] = newSets
+    self.logs[logheight - 1] = newLog
+    self.sets[logheight - 1] = newSets
     
     for i in range(logheight):
-      self.nPrint(logx, logy + i, logs[i], sets[i])
+      self.nPrint(logx, logy + i, self.logs[i], self.sets[i])
     
     rectangle(
       self.stdscr,
@@ -138,30 +138,35 @@ class Client:
 
   def printBoard(self):
     for i in range(5):
-      self.nPrint(boardx, boardy + i, [self.player.nthLine(i)], [white])
+      self.nPrint(boardx, boardy + i, [self.player.nthLine(i)], [green])
 
   def run(self, sock):
     while True:
       msg = recieve(sock)
       parse = msg.split('\0')
+
       if parse[0] == 'PICK':
         self.player.pickNumber(int(parse[1]))
         self.printBoard()
         self.printLog(
           ['[{}]'.format(parse[2]), ' picked ', '{}'.format(parse[1]), '.'],
           [yellow, white, green, white])
+
       elif parse[0] == 'MESS':
         self.printLog(
           ['Message from ', '[{}]'.format(parse[1]), ': ', '\"{}\"'.format(parse[2])],
           [white, yellow, white, red])
+
       elif parse[0] == 'BINGO':
         self.printLog(
           ['[{}]'.format(parse[1]), ' achieved ', 'bingo!'],
           [yellow, white, red])
+
       elif parse[0] == 'TURN':
         self.printLog(['Your turn!'], [cyan])
         self.turn = True
         self.printLog(['Submit your pick.'], [white])
+
         while True:
           num = self.nInput(inputx, inputy, 30)
           if not(num.isdigit()):
@@ -172,12 +177,14 @@ class Client:
               [white, green, white]
             )
             break
+
         if self.position == 'main culprit':
           self.printLog(['Submit your message to send:'], [white])
           msg = self.nInput(inputx, inputy, 30)
           send(sock, '{}\0{}\0{}'.format('PICK', num, msg))
         else:
           send(sock, '{}\0{}\0{}'.format('PICK', num, 'None'))
+          
       elif parse[0] == 'DONE':
         send(sock, 'DONE')
         break
