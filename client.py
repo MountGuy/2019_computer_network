@@ -91,12 +91,13 @@ class Client:
       ['Wait for rest of player to join.'], [white]
     )
 
+    recieve(self.clientSock)
+    self.printLog(['Game start!'], [cyan])
+    
     strs = recieve(self.clientSock).split()
     numbers = list(map(lambda x : int(x), strs))
     board = [numbers[0:5], numbers[5:10], numbers[10:15], numbers[15:20], numbers[20:25]]
     self.player = Player(id, board)
-    recieve(self.clientSock)
-    self.printLog(['Game start!'], [cyan])
     self.printBoard()
     self.turn = False
 
