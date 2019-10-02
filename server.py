@@ -40,6 +40,7 @@ class Server :
         send(sock, 'FAIL')
       else:
         send(sock, 'SUCCESS')
+        ### add id to dictionary early in order to avoid collision
         self.playerDict[id] = 'Exist'
         break
     print('>> {} logged in'.format(id))
