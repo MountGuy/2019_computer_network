@@ -15,6 +15,13 @@ class Player:
           print(' □ ', end = '')
       print()
 
+  def packBoard(self):
+    string = ['', '', '', '', '']
+    board = self.numberBoard
+    for i in range(0, 5):
+      string[i] = '{} {} {} {} {}\n'.format(board[i][0], board[i][1], board[i][2], board[i][3], board[i][4])
+    return '{}{}{}{}{}'.format(string[0], string[1], string[2], string[3], string[4])
+
   def nthLine(self, n):
     result = ''
     for i in range(5):
