@@ -37,11 +37,10 @@ class PseudoClient:
     self.selected = [False] * 25
 
     while True:
-      command = recieve(self.clientSock).split()
-
+      command = recieve(self.clientSock).split('\0')
       if command[0] == 'PICK':
         ### apply other player's pick
-        n = int(command[0])
+        n = int(command[1])
         for i in range(25):
           if self.numbers[i] == n:
             self.selected[i] = True
