@@ -38,12 +38,7 @@ class Room:
         result = True
     return (result, winner)
 
-  def getBoard(self, playerID):
-    for player in self.players:
-      if player.id == playerID:
-        return player.board
-
   def getPackedBoard(self, playerID):
     for player in self.players:
       if player.id == playerID:
-        return player.packBoard()
+        return player.packedBoard()
